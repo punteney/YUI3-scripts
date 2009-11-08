@@ -1,4 +1,4 @@
-YUI().use("widget", "plugin", function(Y) {
+YUI().use("plugin", function(Y) {
 	TextExpander = function(cfg) {
 	    TextExpander.superclass.constructor.apply(this, arguments);
 	}
