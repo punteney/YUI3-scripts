@@ -1,7 +1,7 @@
 YUI().use("plugin", function(Y) {
 	TextExpander = function(cfg) {
 	    TextExpander.superclass.constructor.apply(this, arguments);
-	}
+	};
 	
 	TextExpander.NAME = "textExpander";
 	TextExpander.NS = "expander";
@@ -9,7 +9,7 @@ YUI().use("plugin", function(Y) {
 	TextExpander.ATTRS = {
 		line_height: {value: null},
 		min_height: {value: null},
-		max_height: {value: null},
+		max_height: {value: null}
 	};
 	
 	Y.extend(TextExpander, Y.Plugin.Base, {
@@ -31,7 +31,7 @@ YUI().use("plugin", function(Y) {
 				}
 			}
 			if (! this.get('min_height')) {
-				this.set('min_height', parseInt(this.t_area.getStyle('height')));
+				this.set('min_height', parseInt(this.t_area.getStyle('height'), 10));
 			}
 			if (! this.get('max_height')) {
 				if (this.line_height_set) {
@@ -41,12 +41,12 @@ YUI().use("plugin", function(Y) {
 				}
 				
 			}
-			this.t_area.setStyle('overflow', 'hidden');
+			this.set_overflow();
 			
 			this.t_area.on('keyup', function(e) {
 		        if (e.keyCode === 8 || e.keyCode === 46 || (e.keycode == 88 && (e.ctrlKey || e.metaKey))) {
-		        	//Backspace or delete
-		        	this.shrink_area();
+					//Backspace or delete
+					this.shrink_area();
 		        }
 		        this.enlarge_area();
 			}, this);
@@ -55,7 +55,7 @@ YUI().use("plugin", function(Y) {
 	    
 	    enlarge_area: function() {
 	    	var area = this.t_area,
-        		h = parseInt(area.getStyle('height')),
+        		h = parseInt(area.getStyle('height'), 10),
 				scroll_h = area.get('scrollHeight'),
 				line_height = this.get('line_height') || (scroll_h - this.prev_scroll_height);
 			
