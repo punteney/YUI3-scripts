@@ -1,0 +1,227 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<title>Slideshow</title>
+
+<style type="text/css">
+/*margin and padding on body element
+  can introduce errors in determining
+  element position and are not recommended;
+  we turn them off as a foundation for YUI
+  CSS treatments. */
+body {
+	margin:0;
+	padding:0;
+}
+.yui-slideshow-content .slide { 
+    border: 1px solid green;
+    height: 150px;
+    width: 300px;
+    position: absolute;
+    display: none;
+}
+.yui-slideshow-content .current { display: block; }
+</style>
+<script type="text/javascript" src="http://yui.yahooapis.com/3.0.0/build/yui/yui-min.js"></script>
+<body class=" yui-skin-sam">
+<div class="yui-slideshow">
+    <div id="test" class="yui-slideshow-content">
+        <div class="slide">
+            Slide 1 Test
+        </div>
+        <div class="slide">
+            Slide 2
+        </div>
+        <div class="slide current">
+            Slide 3
+        </div>
+    </div>
+<div>
+
+<script type="text/javascript">
+YUI().use("widget", 'anim-base', function(Y) {
+    function Slideshow(config) {
+        Slideshow.superclass.constructor.apply(this, arguments);
+    }
+
+    Slideshow.NAME = 'slideshow';
+    Slideshow.ATTRS = {
+        speed: { value: 2 },
+        pause: {
+            value: 2,
+            setter: function(val) {
+                    return this._set_pause(val);
+            }
+        },
+        auto_advance: { value: true },
+        slides: { value: [] },
+        current_slide: { 
+            value: 0,
+            validator: function(val) {
+                return this._validate_current_slide(val);
+            }
+        },
+        slide_count: { value: 0 },
+        animation_out: { 
+            value: new Y.Anim({
+                to: { opacity: 0 },
+                duration: 0.5
+            })
+        },
+        animation_in: { 
+            value: new Y.Anim({
+                to: { opacity: 1 },
+                duration: 0.5
+            })
+        }
+
+    };
+    // The CSS class to designate the current slide
+    Slideshow.CURRENT_CLASS = 'current';
+
+    Slideshow.HTML_PARSER = {
+        slides: function (contentBox) {
+            return contentBox.get('children');
+        }
+    };
+
+    Y.extend(Slideshow, Y.Widget, {
+        initializer: function() {
+            // Get how many slides there are
+            var slides = this.get('slides');
+            var slide_count = slides.size();
+            this.set('slide_count', slide_count);
+            // Setting the current slide
+            var current_slide = slides.hasClass('current').indexOf(true);
+            if (current_slide > -1) {
+                this.set('current_slide', current_slide);
+            }
+            slides.item(this.get('current_slide')).addClass(Slideshow.CURRENT_CLASS);
+        },
+
+        destructor: function() {
+            
+        },
+        
+        renderUI: function() {
+
+        },
+        
+        bindUI: function() {
+
+        },
+        
+        syncUI: function() {
+            this._update_slide_display();
+            if (this.get('auto_advance')) {
+                this.pause();
+            }
+        },
+        
+        run: function() {
+            this.set('auto_advance', true);
+            this.advance();
+        },
+        
+        stop: function() {
+            this.timer.cancel();
+            this.set('auto_advance', false);
+        },
+        
+        show_slide: function(slide_number) {
+            this.timer.cancel();
+            this.set('current_slide', slide_number);
+            this.syncUI();
+        },
+ 
+        advance: function() {
+            this.show_slide(this._get_next_slide());
+        },
+ 
+        previous: function() {
+            this.show_slide(this._get_previous_slide());
+        },
+        
+        pause: function() {
+            this.timer = Y.later(this.get('pause'), this, 'advance');
+        },
+        
+        _get_next_slide: function() {
+            var next_slide = this.get('current_slide') + 1;
+            if (next_slide >= this.get('slide_count')) {
+                return 0;
+            } else {
+                return next_slide;
+            }
+        },
+
+        _get_previous_slide: function() {
+            var prev_slide = this.get('current_slide') - 1;
+            if (prev_slide <= 0) {
+                return this.get('slide_count') - 1;
+            } else {
+                return prev_slide;
+            }
+        },
+        
+        _update_slide_display: function() {
+            var current = this.get('current_slide'),
+                count = this.get('slide_count'),
+                slides = this.get('slides'),
+                show_slide = null,
+                hide_slide = null;
+
+            for ( var i = 0; i < count; i++) {
+                if (i == current) {
+                    if (!slides.item(i).hasClass(Slideshow.CURRENT_CLASS)) {
+                        show_slide = slides.item(i);
+                    }
+                } else {
+                    if (slides.item(i).hasClass(Slideshow.CURRENT_CLASS)) {
+                        hide_slide = slides.item(i);
+                    }
+                }
+            }
+            if (show_slide) {
+                show_slide.setStyle('opacity', 0);
+                show_slide.addClass(Slideshow.CURRENT_CLASS);
+                var anim_in = this.get('animation_in');
+                anim_in.set('node', show_slide); 
+                anim_in.run();
+            }
+            if (hide_slide) {
+                var anim_out = this.get('animation_out');
+                anim_out.set('node', hide_slide);
+                anim_out.on('end', function() { 
+                    anim_out.get('node').removeClass(Slideshow.CURRENT_CLASS); 
+                }); 
+                anim_out.run();
+            }
+            
+        },
+
+        /*
+         * Converts the seconds into milliseconds
+         */
+        _set_pause: function(val) {
+            // Converting from seconds to microseconds
+            return val * 1000;
+        },
+        
+        _validate_current_slide: function(val) {
+            var min = 0,
+                max = this.get("slide_count");
+            return (Y.Lang.isNumber(val) && val >= min && val <= max);
+        }
+
+    });
+    
+    var slideshow = new Slideshow({contentBox: '#test'});
+    slideshow.render();
+    
+});
+</script>
+
+</body>
+</html>
