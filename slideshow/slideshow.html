@@ -14,30 +14,64 @@ body {
 	margin:0;
 	padding:0;
 }
-.yui-slideshow-content .slide { 
+.wrapper {
+    position: relative; 
+    width: 100%; 
+    overflow: hidden;
+    margin: 5px;
+}
+#default {position: relative; height: 152px; margin-left: 150px;}
+#default .slide { 
     border: 1px solid green;
     height: 150px;
     width: 300px;
     position: absolute;
     display: none;
 }
-.yui-slideshow-content .current { display: block; }
+#default .current { display: block;}
+
+.sliding { position: relative; width: 302px; overflow: hidden;}
+#slide { position: relative; width: 1000px;}
+#slide .slide {
+    height: 150px;
+    width: 300px;
+    float: left;
+    border: 1px solid blue;
+}
 </style>
 <script type="text/javascript" src="http://yui.yahooapis.com/3.0.0/build/yui/yui-min.js"></script>
 <body class=" yui-skin-sam">
-<div class="yui-slideshow">
-    <div id="test" class="yui-slideshow-content">
-        <div class="slide">
-            Slide 1 Test
-        </div>
-        <div class="slide">
-            Slide 2
-        </div>
-        <div class="slide current">
-            Slide 3
+<div class="wrapper">
+    <div class="yui-slideshow">
+        <div id="default" class="yui-slideshow-content">
+            <div class="slide current">
+                Slide 1 Test
+            </div>
+            <div class="slide">
+                Slide 2
+            </div>
+            <div class="slide">
+                Slide 3
+            </div>
         </div>
     </div>
-<div>
+</div>
+a
+<div class="wrapper ">
+    <div class="yui-slideshow sliding">
+        <div id="slide" class="yui-slideshow-content">
+            <div class="slide">
+                Slide 1 Test
+            </div>
+            <div class="slide">
+                Slide 2
+            </div>
+            <div class="slide current">
+                Slide 3
+            </div>
+        </div>
+    </div>
+</div>
 
 <script type="text/javascript">
 YUI().use("widget", 'anim-base', function(Y) {
@@ -217,8 +251,12 @@ YUI().use("widget", 'anim-base', function(Y) {
 
     });
     
-    var slideshow = new Slideshow({contentBox: '#test'});
+    var slideshow = new Slideshow({contentBox: '#default'});
     slideshow.render();
+
+    var slideshow2 = new Slideshow({contentBox: '#slide'});
+    slideshow2.render();
+        
     
 });
 </script>
