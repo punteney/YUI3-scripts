@@ -20,55 +20,58 @@ body {
     overflow: hidden;
     margin: 5px;
 }
-#default {position: relative; height: 152px; margin-left: 150px;}
-#default .slide { 
+.yui-slideshow {position: relative; height: 152px; }
+.slide { 
     border: 1px solid green;
     height: 150px;
     width: 300px;
     position: absolute;
     display: none;
 }
-#default .current { display: block;}
+.current { display: block;}
+.slider {width: 302px; overflow: hidden; border: 1px solid blue;}
 
-.sliding { position: relative; width: 302px; overflow: hidden;}
-#slide { position: relative; width: 1000px;}
-#slide .slide {
-    height: 150px;
-    width: 300px;
-    float: left;
-    border: 1px solid blue;
-}
 </style>
 <script type="text/javascript" src="http://yui.yahooapis.com/3.0.0/build/yui/yui-min.js"></script>
 <body class=" yui-skin-sam">
 <div class="wrapper">
-    <div class="yui-slideshow">
-        <div id="default" class="yui-slideshow-content">
-            <div class="slide current">
-                Slide 1 Test
-            </div>
-            <div class="slide">
-                Slide 2
-            </div>
-            <div class="slide">
-                Slide 3
-            </div>
+    <div id="default">
+        <div class="slide current">
+            Slide 1 Test
+        </div>
+        <div class="slide">
+            Slide 2
+        </div>
+        <div class="slide">
+            Slide 3
         </div>
     </div>
 </div>
-a
-<div class="wrapper ">
-    <div class="yui-slideshow sliding">
-        <div id="slide" class="yui-slideshow-content">
-            <div class="slide">
-                Slide 1 Test
-            </div>
-            <div class="slide">
-                Slide 2
-            </div>
-            <div class="slide current">
-                Slide 3
-            </div>
+&nbsp;
+<div class="wrapper slider">
+    <div id="side-slide">
+        <div class="slide">
+            Slide 1 Test
+        </div>
+        <div class="slide">
+            Slide 2
+        </div>
+        <div class="slide current">
+            Slide 3
+        </div>
+    </div>
+</div>
+&nbsp;
+<div class="wrapper slider">
+    <div id="top-slide">
+        <div class="slide">
+            Slide 1 Test
+        </div>
+        <div class="slide">
+            Slide 2
+        </div>
+        <div class="slide current">
+            Slide 3
         </div>
     </div>
 </div>
@@ -82,10 +85,10 @@ YUI().use("widget", 'anim-base', function(Y) {
     Slideshow.NAME = 'slideshow';
     Slideshow.ATTRS = {
         speed: { value: 2 },
-        pause: {
+        pause_time: {
             value: 2,
             setter: function(val) {
-                    return this._set_pause(val);
+            	return this._set_pause_time(val);
             }
         },
         auto_advance: { value: true },
@@ -98,16 +101,18 @@ YUI().use("widget", 'anim-base', function(Y) {
         },
         slide_count: { value: 0 },
         animation_out: { 
-            value: new Y.Anim({
+            value: {
+            	from: { opacity: 1},
                 to: { opacity: 0 },
                 duration: 0.5
-            })
+            }
         },
         animation_in: { 
-            value: new Y.Anim({
+            value: {
+            	from: {opacity: 0},
                 to: { opacity: 1 },
                 duration: 0.5
-            })
+            }
         }
 
     };
@@ -132,24 +137,26 @@ YUI().use("widget", 'anim-base', function(Y) {
                 this.set('current_slide', current_slide);
             }
             slides.item(this.get('current_slide')).addClass(Slideshow.CURRENT_CLASS);
-        },
-
-        destructor: function() {
             
-        },
-        
-        renderUI: function() {
-
-        },
-        
-        bindUI: function() {
-
+            // Setup the display/hide animation
+            if (this.get('animation_in')) {
+            	this.anim_in = new Y.Anim(this.get('animation_in'));
+            	this.anim_in.on('end', this._in_anim_after, this);
+            } else {
+            	this.anim_in = null;
+            }
+            if (this.get('animation_in')) {
+            	this.anim_out = new Y.Anim(this.get('animation_out'));
+            	this.anim_out.on('end', this._out_anim_after, this);
+            } else {
+            	this.anim_out = null;
+            }
         },
         
         syncUI: function() {
             this._update_slide_display();
             if (this.get('auto_advance')) {
-                this.pause();
+                this._pause();
             }
         },
         
@@ -165,8 +172,12 @@ YUI().use("widget", 'anim-base', function(Y) {
         
         show_slide: function(slide_number) {
             this.timer.cancel();
-            this.set('current_slide', slide_number);
-            this.syncUI();
+            if (this._anim_running()) {
+            	Y.later(this.get('pause_time')/20, this, 'show_slide', slide_number);
+            } else {
+				this.set('current_slide', slide_number);
+            	this.syncUI();
+            }
         },
  
         advance: function() {
@@ -177,8 +188,8 @@ YUI().use("widget", 'anim-base', function(Y) {
             this.show_slide(this._get_previous_slide());
         },
         
-        pause: function() {
-            this.timer = Y.later(this.get('pause'), this, 'advance');
+        _pause: function() {
+            this.timer = Y.later(this.get('pause_time'), this, 'advance');
         },
         
         _get_next_slide: function() {
@@ -202,43 +213,74 @@ YUI().use("widget", 'anim-base', function(Y) {
         _update_slide_display: function() {
             var current = this.get('current_slide'),
                 count = this.get('slide_count'),
-                slides = this.get('slides'),
-                show_slide = null,
-                hide_slide = null;
+                slides = this.get('slides');
 
             for ( var i = 0; i < count; i++) {
                 if (i == current) {
                     if (!slides.item(i).hasClass(Slideshow.CURRENT_CLASS)) {
-                        show_slide = slides.item(i);
+                    	this.set('current_slide', i);
+                        this.display_slide = slides.item(i);
                     }
                 } else {
                     if (slides.item(i).hasClass(Slideshow.CURRENT_CLASS)) {
-                        hide_slide = slides.item(i);
+                        this.hide_slide = slides.item(i);
                     }
                 }
             }
-            if (show_slide) {
-                show_slide.setStyle('opacity', 0);
-                show_slide.addClass(Slideshow.CURRENT_CLASS);
-                var anim_in = this.get('animation_in');
-                anim_in.set('node', show_slide); 
-                anim_in.run();
+            if (this.display_slide) {
+				this._in_anim(this.display_slide);
             }
-            if (hide_slide) {
-                var anim_out = this.get('animation_out');
-                anim_out.set('node', hide_slide);
-                anim_out.on('end', function() { 
-                    anim_out.get('node').removeClass(Slideshow.CURRENT_CLASS); 
-                }); 
-                anim_out.run();
+            if (this.hide_slide) {
+            	this._out_anim(this.hide_slide);
             }
             
+        },
+
+		_anim_running: function() {
+			if (this.anim_in) {
+				if (this.anim_in.get('running')) {
+					return true;
+				}
+			} else if (this.anim_out) {
+				if (this.anim_out.get('running')) {
+					return true;
+				}
+			}
+			return false;
+		},
+		
+		_in_anim: function(slide) {
+			this.fire('slideshow:before-slide-displayed', {slide: this.slide, slide_number: this.get('slides').indexOf(slide)});
+            slide.addClass(Slideshow.CURRENT_CLASS);
+            if (this.anim_in) {
+                this.anim_in.set('node', slide);
+                this.anim_in.run();
+            }		
+		},
+        
+        _out_anim: function(slide) {
+	    	this.fire('slideshow:before-slide-hidden', {slide: slide, slide_number: this.get('slides').indexOf(slide)});
+        	if (this.anim_out) {
+                this.anim_out.set('node', slide);
+                this.anim_out.run();            		
+        	} else {
+        		slide.removeClass(Slideshow.CURRENT_CLASS);
+        	}        
+        },
+
+        _in_anim_after: function(e) {
+        	this.fire('slideshow:slide-displayed', {slide: this.display_slide, slide_number: this.get('current_slide')});
+        },
+        
+        _out_anim_after: function(e) {
+        	this.hide_slide.removeClass(Slideshow.CURRENT_CLASS);
+        	this.fire('slideshow:slide-hidden', {slide: this.hide_slide, slide_number: this.get('slides').indexOf(this.hide_slide)});
         },
 
         /*
          * Converts the seconds into milliseconds
          */
-        _set_pause: function(val) {
+        _set_pause_time: function(val) {
             // Converting from seconds to microseconds
             return val * 1000;
         },
@@ -254,9 +296,46 @@ YUI().use("widget", 'anim-base', function(Y) {
     var slideshow = new Slideshow({contentBox: '#default'});
     slideshow.render();
 
-    var slideshow2 = new Slideshow({contentBox: '#slide'});
+    var slideshow2 = new Slideshow({
+    	contentBox: '#side-slide',
+    	animation_out: {
+    		from: { left: 0 },
+    		to: {left: -303},
+    		duration: 1
+    	},
+    	animation_in: {
+    		from: { left: 303 },
+    		to: {left: 0},
+    		duration: 1
+    	}
+    });
     slideshow2.render();
+    slideshow2.on('before-slide-displayed', function(e) {
+    	Y.log('in slide displayed!' + e.slide_number);
+    });
+    slideshow2.on('before-slide-hidden', function(e) {
+    	Y.log('in slide hidden! ' + e.slide_number + ' ' + e.slide);
+    });
+
         
+    var slideshow3 = new Slideshow({
+    	contentBox: '#top-slide',
+    	animation_out: {
+    		from: { top: 0 },
+    		to: {top: -152 },
+    		duration: 1
+    	},
+    	animation_in: {
+    		from: { top: 152 },
+    		to: {top: 0},
+    		duration: 1
+    	}
+    });
+    slideshow3.render();
+    slideshow3.stop()
+    slideshow3.show_slide(0);
+    slideshow3.show_slide(1);
+
     
 });
 </script>
