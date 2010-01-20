@@ -11,8 +11,8 @@
   we turn them off as a foundation for YUI
   CSS treatments. */
 body {
-	margin:0;
-	padding:0;
+    margin:0;
+    padding:0;
 }
 .wrapper {
     position: relative; 
@@ -77,18 +77,18 @@ body {
 </div>
 
 <script type="text/javascript">
-YUI().use("widget", 'anim-base', function(Y) {
+YUI().use("widget", "anim-base", function(Y) {
     function Slideshow(config) {
         Slideshow.superclass.constructor.apply(this, arguments);
     }
-
+    
     Slideshow.NAME = 'slideshow';
     Slideshow.ATTRS = {
         speed: { value: 2 },
         pause_time: {
             value: 2,
             setter: function(val) {
-            	return this._set_pause_time(val);
+                return this._set_pause_time(val);
             }
         },
         auto_advance: { value: true },
@@ -102,26 +102,46 @@ YUI().use("widget", 'anim-base', function(Y) {
         slide_count: { value: 0 },
         animation_out: { 
             value: {
-            	from: { opacity: 1},
+                from: { opacity: 1},
                 to: { opacity: 0 },
                 duration: 0.5
             }
         },
         animation_in: { 
             value: {
-            	from: {opacity: 0},
+                from: {opacity: 0},
                 to: { opacity: 1 },
                 duration: 0.5
             }
-        }
-
+        },
+        activate_next_prev_buttons: { value: null },
+        next_button: { value: false },
+        prev_button: {value: false },
+        activate_slide_buttons: { value: null },
+        slide_buttons: {value: [] }
     };
-    // The CSS class to designate the current slide
+    // The CSS selectors
+    Slideshow.AUTO_SLIDESHOW_SELECTOR = '.slideshow';
     Slideshow.CURRENT_CLASS = 'current';
-
+    Slideshow.NEXT_BUTTON_SELECTOR = '.next';
+    Slideshow.PREV_BUTTON_SELECTOR = '.previous';
+    Slideshow.BUTTON_SELECTOR = '.slideSelector';
     Slideshow.HTML_PARSER = {
         slides: function (contentBox) {
-            return contentBox.get('children');
+            var slide_nodes = contentBox.all('.slide');
+            if (slide_nodes.size() === 0) {
+                slide_nodes = contentBox.get('children');
+            }
+            return slide_nodes;
+        },
+        next_button: function(contentBox) {
+            return contentBox.one(Slideshow.NEXT_BUTTON_SELECTOR);
+        },
+        prev_button: function(contentBox) {
+            return contentBox.one(Slideshow.PREV_BUTTON_SELECTOR);
+        },
+        slide_buttons: function(contentBox) {
+            return contentBox.all(Slideshow.BUTTON_SELECTOR);
         }
     };
 
@@ -132,7 +152,7 @@ YUI().use("widget", 'anim-base', function(Y) {
             var slide_count = slides.size();
             this.set('slide_count', slide_count);
             // Setting the current slide
-            var current_slide = slides.hasClass('current').indexOf(true);
+            var current_slide = slides.hasClass(Slideshow.CURRENT_CLASS).indexOf(true);
             if (current_slide > -1) {
                 this.set('current_slide', current_slide);
             }
@@ -140,17 +160,27 @@ YUI().use("widget", 'anim-base', function(Y) {
             
             // Setup the display/hide animation
             if (this.get('animation_in')) {
-            	this.anim_in = new Y.Anim(this.get('animation_in'));
-            	this.anim_in.on('end', this._in_anim_after, this);
+                this.anim_in = new Y.Anim(this.get('animation_in'));
+                this.anim_in.on('end', this._in_anim_after, this);
             } else {
-            	this.anim_in = null;
+                this.anim_in = null;
             }
             if (this.get('animation_in')) {
-            	this.anim_out = new Y.Anim(this.get('animation_out'));
-            	this.anim_out.on('end', this._out_anim_after, this);
+                this.anim_out = new Y.Anim(this.get('animation_out'));
+                this.anim_out.on('end', this._out_anim_after, this);
             } else {
-            	this.anim_out = null;
+                this.anim_out = null;
             }
+
+            
+            if (!(this.get('activate_next_prev_buttons') === false)) {
+                this._init_next_prev_buttons();
+            }
+            
+            if (!(this.get('activate_slide_buttons') === false)) {
+                this._init_buttons();
+            }
+            
         },
         
         syncUI: function() {
@@ -173,10 +203,10 @@ YUI().use("widget", 'anim-base', function(Y) {
         show_slide: function(slide_number) {
             this.timer.cancel();
             if (this._anim_running()) {
-            	Y.later(this.get('pause_time')/20, this, 'show_slide', slide_number);
+                Y.later(this.get('pause_time')/20, this, 'show_slide', slide_number);
             } else {
-				this.set('current_slide', slide_number);
-            	this.syncUI();
+                this.set('current_slide', slide_number);
+                this.syncUI();
             }
         },
  
@@ -218,7 +248,7 @@ YUI().use("widget", 'anim-base', function(Y) {
             for ( var i = 0; i < count; i++) {
                 if (i == current) {
                     if (!slides.item(i).hasClass(Slideshow.CURRENT_CLASS)) {
-                    	this.set('current_slide', i);
+                        this.set('current_slide', i);
                         this.display_slide = slides.item(i);
                     }
                 } else {
@@ -228,53 +258,93 @@ YUI().use("widget", 'anim-base', function(Y) {
                 }
             }
             if (this.display_slide) {
-				this._in_anim(this.display_slide);
+                this._in_anim(this.display_slide);
             }
             if (this.hide_slide) {
-            	this._out_anim(this.hide_slide);
+                this._out_anim(this.hide_slide);
             }
             
         },
 
-		_anim_running: function() {
-			if (this.anim_in) {
-				if (this.anim_in.get('running')) {
-					return true;
-				}
-			} else if (this.anim_out) {
-				if (this.anim_out.get('running')) {
-					return true;
-				}
-			}
-			return false;
-		},
-		
-		_in_anim: function(slide) {
-			this.fire('slideshow:before-slide-displayed', {slide: this.slide, slide_number: this.get('slides').indexOf(slide)});
+        _anim_running: function() {
+            if (this.anim_in) {
+                if (this.anim_in.get('running')) {
+                    return true;
+                }
+            } else if (this.anim_out) {
+                if (this.anim_out.get('running')) {
+                    return true;
+                }
+            }
+            return false;
+        },
+        
+        _in_anim: function(slide) {
+            this.fire('slideshow:before-slide-displayed', {slide: this.slide, slide_number: this.get('slides').indexOf(slide)});
             slide.addClass(Slideshow.CURRENT_CLASS);
             if (this.anim_in) {
                 this.anim_in.set('node', slide);
                 this.anim_in.run();
-            }		
-		},
+            }       
+        },
         
         _out_anim: function(slide) {
-	    	this.fire('slideshow:before-slide-hidden', {slide: slide, slide_number: this.get('slides').indexOf(slide)});
-        	if (this.anim_out) {
+            this.fire('slideshow:before-slide-hidden', {slide: slide, slide_number: this.get('slides').indexOf(slide)});
+            if (this.anim_out) {
                 this.anim_out.set('node', slide);
-                this.anim_out.run();            		
-        	} else {
-        		slide.removeClass(Slideshow.CURRENT_CLASS);
-        	}        
+                this.anim_out.run();                    
+            } else {
+                slide.removeClass(Slideshow.CURRENT_CLASS);
+            }        
         },
 
         _in_anim_after: function(e) {
-        	this.fire('slideshow:slide-displayed', {slide: this.display_slide, slide_number: this.get('current_slide')});
+            this.fire('slideshow:slide-displayed', {slide: this.display_slide, slide_number: this.get('current_slide')});
         },
         
         _out_anim_after: function(e) {
-        	this.hide_slide.removeClass(Slideshow.CURRENT_CLASS);
-        	this.fire('slideshow:slide-hidden', {slide: this.hide_slide, slide_number: this.get('slides').indexOf(this.hide_slide)});
+            this.hide_slide.removeClass(Slideshow.CURRENT_CLASS);
+            this.fire('slideshow:slide-hidden', {slide: this.hide_slide, slide_number: this.get('slides').indexOf(this.hide_slide)});
+        },
+
+        _init_next_prev_buttons: function() {
+            var next = this.get('next_button');
+            if (next) {
+                next.on('click', function(e){
+                    e.preventDefault();
+                    this.advance();
+                }, this);
+            }
+            var prev = this.get('prev_button');
+            if (prev) {
+                prev.on('click', function(e){
+                    e.preventDefault();
+                    this.previous();
+                }, this);
+            }
+        },
+
+        _init_buttons: function() {
+            var buttons = this.get('slide_buttons');
+            var button_count = buttons.size();
+            if (button_count > 0) {
+                this.set('slide_buttons', buttons);
+                // Setting up the on click functionality for each button
+                for(var i =0; i < button_count; i++) {
+                    buttons.item(i).on('click', function(e, slide_number) {
+                        e.preventDefault();
+                        this.stop();
+                        this.show_slide(slide_number);
+                    }, this, i);
+                }
+                // Changing the current button as the slide changes
+                this.on('before-slide-displayed', function(e) {
+                    buttons.item(e.slide_number).addClass(Slideshow.CURRENT_CLASS);
+                });
+                this.on('before-slide-hidden', function(e) {
+                    buttons.item(e.slide_number).removeClass(Slideshow.CURRENT_CLASS);
+                });
+            }
         },
 
         /*
@@ -292,44 +362,54 @@ YUI().use("widget", 'anim-base', function(Y) {
         }
 
     });
+
+    Slideshow.auto = function() {
+        Y.all(Slideshow.AUTO_SLIDESHOW_SELECTOR).each(function() {
+            var slideshow_instance = new Slideshow({contentBox: this });
+            slideshow_instance.render()
+        });
+    };
+
+
+
     
     var slideshow = new Slideshow({contentBox: '#default'});
     slideshow.render();
 
     var slideshow2 = new Slideshow({
-    	contentBox: '#side-slide',
-    	animation_out: {
-    		from: { left: 0 },
-    		to: {left: -303},
-    		duration: 1
-    	},
-    	animation_in: {
-    		from: { left: 303 },
-    		to: {left: 0},
-    		duration: 1
-    	}
+        contentBox: '#side-slide',
+        animation_out: {
+            from: { left: 0 },
+            to: {left: -303},
+            duration: 1
+        },
+        animation_in: {
+            from: { left: 303 },
+            to: {left: 0},
+            duration: 1
+        }
     });
     slideshow2.render();
     slideshow2.on('before-slide-displayed', function(e) {
-    	Y.log('in slide displayed!' + e.slide_number);
+        Y.log('in slide displayed!' + e.slide_number);
     });
     slideshow2.on('before-slide-hidden', function(e) {
-    	Y.log('in slide hidden! ' + e.slide_number + ' ' + e.slide);
+        Y.log('in slide hidden! ' + e.slide_number + ' ' + e.slide);
     });
 
         
     var slideshow3 = new Slideshow({
-    	contentBox: '#top-slide',
-    	animation_out: {
-    		from: { top: 0 },
-    		to: {top: -152 },
-    		duration: 1
-    	},
-    	animation_in: {
-    		from: { top: 152 },
-    		to: {top: 0},
-    		duration: 1
-    	}
+        contentBox: '#top-slide',
+        animation_out: {
+            from: { top: 0 },
+            to: {top: -152 },
+            duration: 1
+        },
+        animation_in: {
+            from: { top: 152 },
+            to: {top: 0},
+            duration: 1
+        }
     });
     slideshow3.render();
     slideshow3.stop()
