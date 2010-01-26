@@ -58,7 +58,7 @@ YUI().add("slideshow", function(Y) {
             var slide_count = slides.size();
             this.set('slide_count', slide_count);
             // Setting the current slide
-            var current_slide = slides.hasClass(Slideshow.CURRENT_CLASS).indexOf(true);
+            var current_slide = Y.Array.indexOf(slides.hasClass(Slideshow.CURRENT_CLASS), true);
             if (current_slide > -1) {
                 this.set('current_slide', current_slide);
             }
@@ -411,7 +411,7 @@ YUI().add("animatedSlideshow", function(Y) {
         AnimatedSlideshow.auto_horizontal();
         AnimatedSlideshow.auto_vertical();
         Y.all(Y.Slideshow.AUTO_SLIDESHOW_SELECTOR).each(function() {
-            if (AnimatedSlideshow.nodes.indexOf(this) == -1) {
+            if (Y.Array.indexOf(AnimatedSlideshow.nodes, this) == -1) {
                 // The node isn't a slideshow already so make it into one
                 var slideshow_instance = new AnimatedSlideshow({contentBox: this });
                 slideshow_instance.render();
@@ -429,7 +429,7 @@ YUI().add("animatedSlideshow", function(Y) {
         pause_time = attrs.pause_time || Y.Slideshow.ATTRS.pause_time.value;
         
         Y.all(selector).each(function() {
-            if (AnimatedSlideshow.nodes.indexOf(this) == -1) {
+            if (Y.Array.indexOf(AnimatedSlideshow.nodes, this) == -1) {
                 var slide = this.one('.slide'),
                     width = parseInt(slide.getComputedStyle('width'), 10) + 10;
 
@@ -462,7 +462,7 @@ YUI().add("animatedSlideshow", function(Y) {
         pause_time = attrs.pause_time || Y.Slideshow.ATTRS.pause_time.value;
 
         Y.all(selector).each(function() {
-            if (AnimatedSlideshow.nodes.indexOf(this) == -1) {
+            if (Y.Array.indexOf(AnimatedSlideshow.nodes, this) == -1) {
                 var slide = this.one('.slide'),
                     height = parseInt(slide.getComputedStyle('height'), 10) + 10;
 
